@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { assign, setup } from "xstate";
 import { CartEntry, CartItem } from "../domains/cart/cart";
 import { useMachine } from "@xstate/react";
@@ -69,7 +68,12 @@ export const cartMachine = setup({
   states: {
     default: {
       on: {
-        addItem: {},
+        addItem: {
+          actions: {
+            type: "addItem",
+            params: ({ event }) => ({ item: event.item }),
+          },
+        },
       },
     },
   },

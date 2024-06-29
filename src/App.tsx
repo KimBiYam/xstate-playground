@@ -1,28 +1,26 @@
 import "./App.css";
+import Books from "./components/Books";
+import Cart from "./components/Cart";
+import { booksFixture } from "./fixtures/booksFixture";
 import { useCart } from "./state/cartState";
+
+const books = booksFixture;
 
 function App() {
   const [state, send] = useCart();
-  console.log("state", state);
 
   return (
     <div>
-      <h3>status: {state.status}</h3>
-      <button
-        onClick={() =>
-          send({ type: "addItem", item: { id: 1, price: 1, stock: 1 } })
-        }
-      >
-        add test item
-      </button>
-      <ul>
-        {state.context.entries.map((entry) => (
-          <li key={entry.item.id}>
-            <p>id: {entry.item.id}</p>
-            <p>quantity: {entry.quantity}</p>
-          </li>
-        ))}
-      </ul>
+      <Books
+        books={books}
+        entries={state.context.entries}
+        onAddToCartClick={(item) => send({ type: "addItem", item })}
+      />
+      <hr />
+      <Cart
+        entries={state.context.entries}
+        onDeleteClick={(itemId) => send({ type: "removeItem", itemId })}
+      />
     </div>
   );
 }

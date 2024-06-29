@@ -74,6 +74,12 @@ export const cartMachine = setup({
             params: ({ event }) => ({ item: event.item }),
           },
         },
+        removeItem: {
+          actions: {
+            type: "remoteItem",
+            params: ({ event }) => ({ itemId: event.itemId }),
+          },
+        },
       },
     },
   },

@@ -10,6 +10,8 @@ type CartMachineEvents =
   | { type: "addItem"; item: CartItem }
   | { type: "removeItem"; itemId: number };
 
+const CART_MAX_ITEMS_COUNT = 3;
+
 export const cartMachine = setup({
   types: {
     context: {} as CartMachineContext,
@@ -59,7 +61,9 @@ export const cartMachine = setup({
     }),
   },
   guards: {
-    isCartEmpty: ({ context }) => !context.entries.length,
+    isCartFull: ({ context }) => context.entries.length >= CART_MAX_ITEMS_COUNT,
+    isCartNotFull: ({ context }) =>
+      context.entries.length < CART_MAX_ITEMS_COUNT,
   },
 }).createMachine({
   id: "cart",
@@ -67,6 +71,10 @@ export const cartMachine = setup({
   context: { entries: [] },
   states: {
     default: {
+      always: {
+        guard: { type: "isCartFull" },
+        target: "isFull",
+      },
       on: {
         addItem: {
           actions: {
@@ -74,6 +82,20 @@ export const cartMachine = setup({
             params: ({ event }) => ({ item: event.item }),
           },
         },
+        removeItem: {
+          actions: {
+            type: "remoteItem",
+            params: ({ event }) => ({ itemId: event.itemId }),
+          },
+        },
+      },
+    },
+    isFull: {
+      always: {
+        guard: { type: "isCartNotFull" },
+        target: "default",
+      },
+      on: {
         removeItem: {
           actions: {
             type: "remoteItem",

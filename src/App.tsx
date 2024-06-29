@@ -19,6 +19,7 @@ function App() {
       <hr />
       <Cart
         entries={state.context.entries}
+        isFull={state.value === "isFull"}
         onDeleteClick={(itemId) => send({ type: "removeItem", itemId })}
       />
     </div>

@@ -1,0 +1,4 @@
+{
+  "extends": "@xstate-playground/ts-config/vite-app.json",
+  "include": ["src"]
+}

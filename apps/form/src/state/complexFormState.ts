@@ -1,10 +1,12 @@
 import { assign, setup } from "xstate";
 import { ComplexFormData, Permission, Role } from "../types/complexForm";
 import { useMachine } from "@xstate/react";
-import { isNumericString } from "../utils/inputUtil";
+import { containsNonKorean, isNumericString } from "../utils/stringUtil";
 
 interface ComplexFormState {
   values: Partial<ComplexFormData>;
+  containsNonKoreanName: boolean;
+  isPermissionEditable: boolean;
 }
 
 interface OnChangeEventBase<K extends keyof ComplexFormData> {
@@ -60,6 +62,25 @@ export const complexFormMachine = setup({
         isForeigner: event.value,
       }),
     }),
+    checkContainsNonKoreanName: assign({
+      containsNonKoreanName: (_, event: { value: string }) =>
+        containsNonKorean(event.value),
+    }),
+    updateIsForeignerWhenContainsNonKoreanName: assign({
+      values: ({ context }) => ({
+        ...context.values,
+        isForeigner: !context.containsNonKoreanName,
+      }),
+    }),
+    checkPermissionEditable: assign({
+      isPermissionEditable: ({ context }) => context.values.role !== "guest",
+    }),
+    updatePermissionWhenGuestSelected: assign({
+      values: ({ context }) => {
+        if (context.isPermissionEditable) return context.values;
+        return { ...context.values, permission: "viewer" as const };
+      },
+    }),
   },
 }).createMachine({
   id: "complicatedForm",
@@ -69,17 +90,27 @@ export const complexFormMachine = setup({
       permission: "editor",
       isForeigner: false,
     },
+    containsNonKoreanName: false,
+    isPermissionEditable: true,
   },
   on: {
     update_name: {
-      actions: { type: "update_name", params: ({ event }) => event },
+      actions: [
+        { type: "update_name", params: ({ event }) => event },
+        { type: "checkContainsNonKoreanName", params: ({ event }) => event },
+        "updateIsForeignerWhenContainsNonKoreanName",
+      ],
     },
     update_age: {
       guard: ({ event }) => !event.value || isNumericString(event.value),
       actions: { type: "update_age", params: ({ event }) => event },
     },
     update_role: {
-      actions: { type: "update_role", params: ({ event }) => event },
+      actions: [
+        { type: "update_role", params: ({ event }) => event },
+        "checkPermissionEditable",
+        "updatePermissionWhenGuestSelected",
+      ],
     },
     update_permission: {
       actions: { type: "update_permission", params: ({ event }) => event },

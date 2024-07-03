@@ -1,7 +1,7 @@
 interface RadioGroupProps<T extends string>
   extends Pick<
     React.FieldsetHTMLAttributes<HTMLFieldSetElement>,
-    "name" | "id"
+    "name" | "id" | "disabled"
   > {
   selectedValue: T;
   onChange: (e: React.ChangeEvent<HTMLInputElement>, value: T) => void;

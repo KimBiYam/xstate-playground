@@ -36,6 +36,7 @@ function App() {
       />
       <RadioGroup
         name="permission"
+        disabled={!state.context.isPermissionEditable}
         onChange={(_, value) => send({ type: "update_permission", value })}
         selectedValue={state.context.values.permission ?? "editor"}
         values={PERMISSIONS}
@@ -44,8 +45,7 @@ function App() {
         <label>
           isForeigner
           <input
-            // TODO: enable when entering a name containing text other than Korean
-            // disabled
+            disabled={!state.context.containsNonKoreanName}
             type="checkbox"
             name="isForeigner"
             checked={state.context.values.isForeigner}

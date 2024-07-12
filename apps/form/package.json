@@ -11,20 +11,20 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@xstate/react": "^4.1.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "xstate": "^5.14.0"
+    "@xstate/react": "*",
+    "react": "*",
+    "react-dom": "*",
+    "xstate": "*"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@testing-library/dom": "^10.2.0",
-    "@testing-library/react": "^16.0.0",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@types/react": "*",
+    "@types/react-dom": "*",
+    "@testing-library/dom": "*",
+    "@testing-library/react": "*",
+    "@vitejs/plugin-react": "*",
     "eslint": "*",
-    "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-react-refresh": "^0.4.7",
+    "eslint-plugin-react-hooks": "*",
+    "eslint-plugin-react-refresh": "*",
     "happy-dom": "*",
     "typescript": "*",
     "vite": "*",

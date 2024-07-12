@@ -5,8 +5,6 @@ import { containsNonKorean, isNumericString } from "../utils/stringUtil";
 
 interface ComplexFormState {
   values: Partial<ComplexFormData>;
-  containsNonKoreanName: boolean;
-  isPermissionEditable: boolean;
 }
 
 interface OnChangeEventBase<K extends keyof ComplexFormData> {
@@ -62,61 +60,104 @@ export const complexFormMachine = setup({
         isForeigner: event.value,
       }),
     }),
-    checkContainsNonKoreanName: assign({
-      containsNonKoreanName: (_, event: { value: string }) =>
-        containsNonKorean(event.value),
-    }),
-    updateIsForeignerWhenContainsNonKoreanName: assign({
-      values: ({ context }) => ({
-        ...context.values,
-        isForeigner: !context.containsNonKoreanName,
-      }),
-    }),
-    checkPermissionEditable: assign({
-      isPermissionEditable: ({ context }) => context.values.role !== "guest",
-    }),
-    updatePermissionWhenGuestSelected: assign({
-      values: ({ context }) => {
-        if (context.isPermissionEditable) return context.values;
-        return { ...context.values, permission: "viewer" as const };
-      },
-    }),
+  },
+  guards: {
+    containsNonKorean: ({ context }) =>
+      !!context.values.name && containsNonKorean(context.values.name),
+    notContainsNonKorean: ({ context }) =>
+      !context.values.name || !containsNonKorean(context.values.name),
+    guestSelected: ({ context }) => context.values.role === "guest",
+    guestNotSelected: ({ context }) => context.values.role !== "guest",
+    isEditorSelected: ({ context }) => context.values.permission === "editor",
   },
 }).createMachine({
   id: "complicatedForm",
+  initial: "idle",
   context: {
     values: {
       role: "admin",
       permission: "editor",
       isForeigner: false,
     },
-    containsNonKoreanName: false,
-    isPermissionEditable: true,
   },
-  on: {
-    update_name: {
-      actions: [
-        { type: "update_name", params: ({ event }) => event },
-        { type: "checkContainsNonKoreanName", params: ({ event }) => event },
-        "updateIsForeignerWhenContainsNonKoreanName",
-      ],
-    },
-    update_age: {
-      guard: ({ event }) => !event.value || isNumericString(event.value),
-      actions: { type: "update_age", params: ({ event }) => event },
-    },
-    update_role: {
-      actions: [
-        { type: "update_role", params: ({ event }) => event },
-        "checkPermissionEditable",
-        "updatePermissionWhenGuestSelected",
-      ],
-    },
-    update_permission: {
-      actions: { type: "update_permission", params: ({ event }) => event },
-    },
-    update_isForeigner: {
-      actions: { type: "update_isForeigner", params: ({ event }) => event },
+  states: {
+    idle: {
+      type: "parallel",
+      on: {
+        update_age: {
+          guard: ({ event }) => !event.value || isNumericString(event.value),
+          actions: { type: "update_age", params: ({ event }) => event },
+        },
+        update_permission: {
+          actions: {
+            type: "update_permission",
+            params: ({ event }) => event,
+          },
+        },
+        update_isForeigner: {
+          actions: {
+            type: "update_isForeigner",
+            params: ({ event }) => event,
+          },
+        },
+      },
+      states: {
+        name: {
+          initial: "default",
+          always: {
+            guard: "containsNonKorean",
+            target: ".containsNonKorean",
+          },
+          on: {
+            update_name: {
+              actions: {
+                type: "update_name",
+                params: ({ event }) => event,
+              },
+            },
+          },
+          states: {
+            default: {},
+            containsNonKorean: {
+              always: {
+                guard: "notContainsNonKorean",
+                target: "default",
+                actions: {
+                  type: "update_isForeigner",
+                  params: () => ({ value: false }),
+                },
+              },
+            },
+          },
+        },
+        role: {
+          initial: "default",
+          always: [{ guard: "guestSelected", target: ".guestSelected" }],
+          on: {
+            update_role: {
+              actions: [{ type: "update_role", params: ({ event }) => event }],
+            },
+          },
+          states: {
+            default: {},
+            guestSelected: {
+              always: [
+                {
+                  guard: "isEditorSelected",
+                  actions: {
+                    type: "update_permission",
+                    params: () => ({ value: "viewer" }),
+                  },
+                },
+                {
+                  guard: "guestNotSelected",
+                  target: "default",
+                },
+              ],
+            },
+          },
+        },
+      },
     },
   },
 });

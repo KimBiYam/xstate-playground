@@ -7,11 +7,19 @@ import { PERMISSIONS, ROLES } from "./types/complexForm";
 function App() {
   const [state, send] = useComplexForm();
 
+  const isValid = state.matches({
+    age: "valid",
+    isForeigner: "valid",
+    name: "valid",
+    permission: "valid",
+    role: "valid",
+  });
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        send({ type: "onSubmit" });
+        window.alert(JSON.stringify(state.context.values));
       }}
     >
       <TextField
@@ -36,7 +44,7 @@ function App() {
       />
       <RadioGroup
         name="permission"
-        disabled={state.matches({ idle: { role: { valid: "guestSelected" } } })}
+        disabled={state.matches({ role: { valid: "guestSelected" } })}
         onChange={(_, value) => send({ type: "update_permission", value })}
         selectedValue={state.context.values.permission ?? "editor"}
         values={PERMISSIONS}
@@ -45,9 +53,7 @@ function App() {
         <label>
           isForeigner
           <input
-            disabled={
-              !state.matches({ idle: { name: { valid: "containsNonKorean" } } })
-            }
+            disabled={!state.matches({ name: { valid: "containsNonKorean" } })}
             type="checkbox"
             name="isForeigner"
             checked={state.context.values.isForeigner}
@@ -57,7 +63,9 @@ function App() {
           />
         </label>
       </div>
-      <button type="submit">submit</button>
+      <button type="submit" disabled={!isValid}>
+        submit
+      </button>
     </form>
   );
 }

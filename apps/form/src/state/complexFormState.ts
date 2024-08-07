@@ -1,4 +1,4 @@
-import { assign, setup } from "xstate";
+import { assign, enqueueActions, setup } from "xstate";
 import { ComplexFormData, Permission, Role } from "../types/complexForm";
 import { useMachine } from "@xstate/react";
 import { containsNonKorean, isNumericString } from "../utils/stringUtil";
@@ -66,6 +66,7 @@ export const complexFormMachine = setup({
       !!context.values.name && containsNonKorean(context.values.name),
     notContainsNonKorean: ({ context }) =>
       !context.values.name || !containsNonKorean(context.values.name),
+    invalidName: ({ context }) => !context.values.name,
     guestSelected: ({ context }) => context.values.role === "guest",
     guestNotSelected: ({ context }) => context.values.role !== "guest",
     isEditorSelected: ({ context }) => context.values.permission === "editor",
@@ -83,77 +84,135 @@ export const complexFormMachine = setup({
   states: {
     idle: {
       type: "parallel",
-      on: {
-        update_age: {
-          guard: ({ event }) => !event.value || isNumericString(event.value),
-          actions: { type: "update_age", params: ({ event }) => event },
-        },
-        update_permission: {
-          actions: {
-            type: "update_permission",
-            params: ({ event }) => event,
-          },
-        },
-        update_isForeigner: {
-          actions: {
-            type: "update_isForeigner",
-            params: ({ event }) => event,
-          },
-        },
-      },
       states: {
-        name: {
-          initial: "default",
-          always: {
-            guard: "containsNonKorean",
-            target: ".containsNonKorean",
-          },
+        age: {
+          initial: "invalid",
           on: {
-            update_name: {
+            update_age: {
+              guard: ({ event }) =>
+                !event.value || isNumericString(event.value),
+              actions: { type: "update_age", params: ({ event }) => event },
+            },
+          },
+          states: {
+            invalid: {
+              always: {
+                guard: ({ context }) => typeof context.values.age === "number",
+                target: "valid",
+              },
+            },
+            valid: {
+              type: "final",
+              always: {
+                guard: ({ context }) => context.values.age === undefined,
+                target: "valid",
+              },
+            },
+          },
+        },
+        permission: {
+          type: "final",
+          on: {
+            update_permission: {
               actions: {
-                type: "update_name",
+                type: "update_permission",
                 params: ({ event }) => event,
               },
             },
           },
-          states: {
-            default: {},
-            containsNonKorean: {
-              always: {
-                guard: "notContainsNonKorean",
-                target: "default",
-                actions: {
-                  type: "update_isForeigner",
-                  params: () => ({ value: false }),
+        },
+        isForeigner: {
+          type: "final",
+          on: {
+            update_isForeigner: {
+              actions: {
+                type: "update_isForeigner",
+                params: ({ event }) => event,
+              },
+            },
+          },
+        },
+        name: {
+          initial: "invalid",
+          on: {
+            update_name: {
+              actions: [
+                {
+                  type: "update_name",
+                  params: ({ event }) => event,
                 },
+                enqueueActions(({ enqueue, check }) => {
+                  if (check({ type: "containsNonKorean" })) {
+                    enqueue({
+                      type: "update_isForeigner",
+                      params: () => ({ value: false }),
+                    });
+                  }
+                }),
+              ],
+            },
+          },
+          states: {
+            valid: {
+              type: "final",
+              always: {
+                guard: ({ context }) => !context.values.name,
+                target: "invalid",
+              },
+              initial: "default",
+              states: {
+                default: {
+                  always: {
+                    guard: "containsNonKorean",
+                    target: "containsNonKorean",
+                  },
+                },
+                containsNonKorean: {
+                  always: {
+                    guard: "notContainsNonKorean",
+                    target: "default",
+                  },
+                },
+              },
+            },
+            invalid: {
+              always: {
+                guard: ({ context }) => !!context.values.name,
+                target: "valid",
               },
             },
           },
         },
         role: {
-          initial: "default",
-          always: [{ guard: "guestSelected", target: ".guestSelected" }],
+          initial: "valid",
           on: {
             update_role: {
-              actions: [{ type: "update_role", params: ({ event }) => event }],
+              actions: [
+                { type: "update_role", params: ({ event }) => event },
+                enqueueActions(({ enqueue, check }) => {
+                  if (check({ type: "guestSelected" })) {
+                    enqueue({
+                      type: "update_permission",
+                      params: () => ({ value: "viewer" }),
+                    });
+                  }
+                }),
+              ],
             },
           },
           states: {
-            default: {},
-            guestSelected: {
-              always: [
-                {
-                  guard: "isEditorSelected",
-                  actions: {
-                    type: "update_permission",
-                    params: () => ({ value: "viewer" }),
-                  },
+            valid: {
+              initial: "default",
+              states: {
+                default: {
+                  type: "final",
+                  always: { guard: "guestSelected", target: "guestSelected" },
                 },
-                {
-                  guard: "guestNotSelected",
-                  target: "default",
+                guestSelected: {
+                  type: "final",
+                  always: { guard: "guestNotSelected", target: "default" },
                 },
-              ],
+              },
             },
           },
         },

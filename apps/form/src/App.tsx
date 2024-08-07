@@ -36,7 +36,7 @@ function App() {
       />
       <RadioGroup
         name="permission"
-        disabled={state.matches({ idle: { role: "guestSelected" } })}
+        disabled={state.matches({ idle: { role: { valid: "guestSelected" } } })}
         onChange={(_, value) => send({ type: "update_permission", value })}
         selectedValue={state.context.values.permission ?? "editor"}
         values={PERMISSIONS}
@@ -45,7 +45,9 @@ function App() {
         <label>
           isForeigner
           <input
-            disabled={!state.matches({ idle: { name: "containsNonKorean" } })}
+            disabled={
+              !state.matches({ idle: { name: { valid: "containsNonKorean" } } })
+            }
             type="checkbox"
             name="isForeigner"
             checked={state.context.values.isForeigner}

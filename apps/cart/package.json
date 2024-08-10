@@ -19,8 +19,6 @@
   "devDependencies": {
     "@types/react": "*",
     "@types/react-dom": "*",
-    "@testing-library/dom": "*",
-    "@testing-library/react": "*",
     "@vitejs/plugin-react": "*",
     "eslint": "*",
     "eslint-plugin-react-hooks": "*",
